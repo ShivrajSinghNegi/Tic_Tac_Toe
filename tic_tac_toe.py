@@ -1,136 +1,178 @@
-from tkinter import *
-import random,time
-from itertools import chain
+from tkinter import Tk, Label, PhotoImage, Button, DISABLED, NORMAL
+from tkinter.font import Font
+from random import choice
 
-chance = random.choice(["Player","Bot"])
-count = 0
-def assign(cell):
-    global chance
-    if cell in options:
-        options.remove(cell)
-        if cell['text'] == "":
-            if chance == "Player":
-                cell['text'] = "X"
-                cell['fg'] = "green"
-                cell['bg'] = 'lightgreen'
-                chance = "Bot"
-                is_win()
-                choice = move(options)
-                assign(choice)
+class Tic_Tac_Toe:
+    def __init__(self):
+        self.root = Tk()
+        self.fonts = self.load_fonts()
+        self.game_cells, self.result = self.cells()
+        self.options = self.shuffle()
+        self.chance = choice(["Player", "Bot"])
+
+    def load_fonts(self):
+        fonts = {}
+        fonts['Times New Roman'] = Font(family="Times New Roman",size=22,weight="bold")
+        fonts['Comic Sans MS'] = Font(family="Comic Sans MS",size=22,weight="bold")
+        fonts['Arial'] = Font(family="Arial",size=30,weight="bold")
+        return fonts
+
+    def window(self):
+        col = "#cbcbcb"
+        width = 640
+        height = 760
+        self.root.title("Tic Tac Toe")
+        self.root.geometry(f"{width}x{height}")
+        self.root.minsize(width,height)
+        self.root.maxsize(width,height)
+        self.root.configure(bg=col)
+        icon = PhotoImage(file="./tic-tac-toe.png")         # Set window icon
+        self.root.iconphoto(False, icon)
+
+    def assign(self, cell):
+        if cell in self.options:
+            self.options.remove(cell)
+            if self.chance == "Player":
+                cell.config(text="X", fg="green", bg="lightgreen")
+                if not self.win(self.is_win(self.game_cells)):
+                    # Bot's move using minimax
+                    self.chance = "Bot"
+                    self.assign(self.move(self.options))
             else:
-                time.sleep(0.05)
-                cell['text'] = "O"
-                cell['fg'] = 'red'
-                cell['bg'] = 'pink'
-                chance = "Player"
-                is_win()
+                cell.config(text="O", fg="red", bg="pink")
+                self.chance = "Player"
+                self.win(self.is_win(self.game_cells))
+                
 
-def win(match_result):
-    if match_result == "Player":
-        result.config(text="You Won",bg="lightgreen",fg="green")
-    elif match_result == "Bot":
-        result.config(text="You Lose",bg='pink',fg='red')
-    else:
-        result.config(text="Draw",fg='brown',bg="lightyellow")
-    disable(game_cells)
+    def win(self, match_result):
+        if match_result is not None:
+            if match_result == 10:
+                values = ("You Won","green","lightgreen")
+            elif match_result == -10:
+                values = ("You Lose","red","pink")
+            else:
+                values = ("Draw","brown","lightyellow")
+            self.result.config(text=values[0], fg=values[1], bg=values[2])
+            self.disable()
+            self.result['state'] = NORMAL
+            return True
+        return False
 
-def is_win():
-    global count
-    c = game_cells
-    count+=1
-    for i in range(3):
-        if c[i][0]['text'] == c[i][1]['text'] == c[i][2]['text']:
-            if c[i][0]['text']=='X':
-                return win("Player")
-            elif c[i][0]['text']=='O':
-                return win("Bot")
-        if c[0][i]['text'] == c[1][i]['text'] == c[2][i]['text']:
-            if c[0][i]['text']== "X":
-                return win("Player")
-            elif c[0][i]['text']== "O":
-                return win("Bot")
-    if c[0][0]['text'] == c[1][1]['text'] == c[2][2]['text']:
-        if c[0][0]['text']=='X':
-            return win("Player")
-        elif c[0][0]['text']=="O":
-            return win("Bot")
-    if c[0][2]['text'] == c[1][1]['text'] == c[2][0]['text']:
-        if c[0][2]['text']=='X':
-            return win("Player")
-        elif c[0][2]['text']=='O':
-            return win("Bot")
-    if count == 9:
-        return win("Draw")
+    def cells(self):
+        col = "#cbcbcb"
 
-def move(options):
-    if options:
-        s = random.choice(options)
-        return s
-def cells():
-    w = 7
-    h = 3
-    bw = 3
-    f = ("Arial",36,"bold")
-    col = "#cbcbcb"
+        # Space and title
+        space = Label(self.root, width=4, bg=col)
+        space.grid(row=1, column=0)
+        title = Label(self.root, text="Tic Tac Toe", font=self.fonts['Comic Sans MS'],fg="#000000", bg=col)
+        title.grid(row=0, column=2, pady=10)
 
-    space = Label(root,width=3,bg=col)
-    space.grid(row=1,column=0)
+        pos = [[], [], []]
+        for i in range(3):
+            for j in range(3):
+                cell = Button(self.root, width=7, borderwidth=3, relief="solid", height=4, font=self.fonts['Arial'], command=lambda i=i, j=j: self.assign(self.game_cells[i][j]))
+                cell.grid(row=i + 1, column=j + 1)
+                pos[i].append(cell)
+        result = Button(self.root, text="", font =self.fonts['Times New Roman'], state=DISABLED, fg="Red", borderwidth=3,relief="solid",width=7,height=1,command = lambda : self.reset())
+        result.grid(row=4,column=2,pady=30)
+        return pos,result
+    
+    def is_win(self, game_cells):
+        # Define winning patterns (rows, columns, diagonals)
+        winning_patterns = [
+            [(0, 0), (0, 1), (0, 2)],  # Row 1
+            [(1, 0), (1, 1), (1, 2)],  # Row 2
+            [(2, 0), (2, 1), (2, 2)],  # Row 3
+            [(0, 0), (1, 0), (2, 0)],  # Column 1
+            [(0, 1), (1, 1), (2, 1)],  # Column 2
+            [(0, 2), (1, 2), (2, 2)],  # Column 3
+            [(0, 0), (1, 1), (2, 2)],  # Diagonal 1
+            [(0, 2), (1, 1), (2, 0)],  # Diagonal 2
+        ]
 
-    Title = Label(root,text="Tic Tac Toe",font=("Comic Sans MS",27,"bold"),fg="#000000",bg=col)
-    Title.grid(row = 0,column=2,pady=25)
+        # Check for win conditions
+        for player in ['X', 'O']:
+            for pattern in winning_patterns:
+                if all(game_cells[x][y]['text'] == player for x, y in pattern):
+                    return 10 if player == 'X' else -10
 
-    cell1 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell1))
-    cell1.grid(row=1,column=1)
+        # Check if the board is full (a draw)
+        if all(game_cells[i][j]['text'] != '' for i in range(3) for j in range(3)):
+            return 0
 
-    cell2 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell2))
-    cell2.grid(row=1,column=2)
+        # No winner yet
+        return None
 
-    cell3 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell3))
-    cell3.grid(row=1,column=3)
 
-    cell4 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell4))
-    cell4.grid(row=2,column=1)
+    def shuffle(self):
+        arr = [i for i in range(9)]
+        options = []
+        for i in range(3):
+            for j in range(3):
+                pos = choice(arr)
+                options.insert(pos, self.game_cells[i][j])
+                arr.remove(pos)
+        return options
 
-    cell5 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell5))
-    cell5.grid(row=2,column=2)
+    def disable(self):
+        for i in range(3):
+            for j in range(3):
+                self.game_cells[i][j]['state'] = DISABLED
 
-    cell6 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell6))
-    cell6.grid(row=2,column=3)
+    def reset(self):
+        self.game_cells, self.result = self.cells()
+        self.options = self.shuffle()
+        # self.chance = choice(["Player", "Bot"])
+        # if self.chance == "Bot":
+        #     self.move(self.options)
 
-    cell7 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell7))
-    cell7.grid(row=3,column=1)
+    def move(self, options):
+        if len(options) == 9:
+            return choice(options)
+        return self.minimax(self.game_cells,options,-100,100,False)[1]
 
-    cell8 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell8))
-    cell8.grid(row=3,column=2)
+    def minimax(self, game_cells, options, alpha, beta, maximizingPlayer):
+        result = self.is_win(game_cells)
+        if result is not None:
+            return [result, None]  # Return the result and None for no move
 
-    cell9 = Button(root,width=w,borderwidth=bw,relief="solid",height=h,font=f,command= lambda : assign(cell9))
-    cell9.grid(row=3,column=3)
+        if maximizingPlayer:
+            maxEval = [alpha, None]
+            for cell in options:                              
+                cell['text'] = 'X'
+                new_options = options.copy()
+                new_options.remove(cell)
+                Eval = self.minimax(game_cells, new_options, alpha, beta, False)
+                if Eval[0] > maxEval[0]:
+                    maxEval = [Eval[0], cell]
+                cell['text'] = ''
+                alpha = max(alpha, maxEval[0])
+                if beta <= alpha:
+                    break
+            return maxEval
+        else:
+            minEval = [beta, None]
+            for cell in options:
+                cell['text'] = 'O'
+                new_options = options.copy()
+                new_options.remove(cell)
+                Eval = self.minimax(game_cells, new_options, alpha, beta, True)
+                if Eval[0] < minEval[0]:
+                    minEval = [Eval[0], cell]
+                cell['text'] = ''
+                beta = min(beta, minEval[0])
+                if beta <= alpha:
+                    break
+            return minEval
 
-    cells = [[cell1,cell2,cell3],[cell4,cell5,cell6],[cell7,cell8,cell9]]
-    return cells
 
-def disable(game_cells):
-    for i in range(3):
-        for j in range(3):
-            game_cells[i][j]['state'] = DISABLED
+def main():
+    game = Tic_Tac_Toe()
+    game.window()
+    if game.chance == 'Bot':
+        game.assign(game.move(game.options))
+    game.root.mainloop()
 
-def window():
-    col = "#cbcbcb"
-    root.title("Tic Tac Toe")
-    root.geometry("720x880")
-    root.minsize(720,880)
-    root.maxsize(720,880)
-    root.configure(bg=col)
-    icon = PhotoImage(file="tkinter/tic-tac-toe.png")
-    root.iconphoto(False,icon)
+if __name__ == "__main__":
+    main()
 
-root = Tk()
-window()
-game_cells = cells()
-options = list(chain.from_iterable(game_cells))
-if chance == 'Bot':
-    assign(move(options))
-result = Label(root,text="",font=("Times New Roman",36,"bold"),fg="Red",borderwidth=4,relief="solid",width=7,height=1)
-result.grid(row=4,column=2,pady=30)
-
-root.mainloop()
